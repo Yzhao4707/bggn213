@@ -1,0 +1,195 @@
+---
+title: "class9"
+author: "Yunchong Zhao"
+format: pdf
+date: 10/16/2022
+---
+
+# Section 1 skipped
+
+
+
+
+
+
+
+# Q4: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+
+To simplify the view of this proteins structure. The red molecules are representing oxygen and all hydrogens are omitted for a cleaner view. 
+
+# Q5: There is a critical water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have
+
+A critical conserved water molecule would be 25D of both chain A and B. They seem to be at the connecting point of chain A and chain B of this protein structure. The hydrogen bonds from the water molecules must be important for the structure of the ligand binding.
+
+#Viewing PDB structures with Molstart
+
+![](C:\Users\zyc47\OneDrive\Desktop\BGGN213\class9/1HSG.png)
+
+#Reading and working with structures in R
+
+The `bio3d` package for structural bioinfo has lot's  of features for reading and working with biolomecular sequences and structures.
+
+```{r}
+library(bio3d)
+
+pdb <- read.pdb("1hsg")
+pdb
+
+```
+
+```{r}
+pdb$seqres
+
+head(pdb$atom)
+```
+
+# Q7: How many amino acid residues are there in this pdb object? 
+198.
+
+# Q8: Name one of the two non-protein residues? 
+Water.
+
+# Q9: How many protein chains are in this structure? 
+Two.
+
+
+## creating a new PDB object
+
+```{r}
+adk <- read.pdb("6s36")
+adk
+```
+
+Normal mode analysis (NMA) is a bioinfo method for predicting functional motions. It will show uis the parts of the protein that are "flexible"
+
+```{r}
+# Perform flexiblity prediction
+m <- nma(adk)
+plot(m)
+```
+
+Make a movie of this thing moving:
+
+```{r}
+mktrj(m, file="adk.nma.pdb")
+```
+
+
+  
+
+
+
+```{r}
+# Install packages in the R console NOT your Rmd/Quarto file
+
+#install.packages("bio3d")
+#install.packages("devtools")
+#install.packages("BiocManager")
+
+#BiocManager::install("msa")
+#devtools::install_bitbucket("Grantlab/bio3d-view")
+```
+
+# Q10. Which of the packages above is found only on BioConductor and not CRAN? 
+
+msa
+
+# Q11. Which of the above packages is not found on BioConductor or CRAN?: 
+bio3d-View
+
+# Q12. True or False? Functions from the devtools package can be used to install packages from GitHub and BitBucket?
+
+True.
+
+# Comparative analysis of all ADK structures.
+
+First we get the sequence of ADK and use this to search the PDB database.
+
+```{r}
+aa <- get.seq("1aKE_a")
+
+aa
+```
+
+# Q13. How many amino acids are in this sequence, i.e. how long is this sequence? 
+There are 214 a.a. in this sequence.
+
+```{r}
+# Blast or hmmer search 
+b <- blast.pdb(aa)
+# Plot a summary of search results
+hits <- plot(b)
+# List out some 'top hits'
+head(hits$pdb.id)
+# Download releated PDB files
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+
+# Align and superpose structures
+
+```{r}
+# Align releated PDBs
+pdbs <- pdbaln(files, fit = TRUE, exefile="msa")
+
+# Vector containing PDB codes for figure axis
+ids <- basename.pdb(pdbs$id)
+
+# Draw schematic alignment
+#plot(pdbs, labels=ids)
+```
+
+# Annotate collected PDB structures
+
+```{r}
+anno <- pdb.annotate(ids)
+unique(anno$source)
+
+anno
+```
+
+# PCA to the rescue!!
+
+```{r}
+# Perform PCA
+pc.xray <- pca(pdbs)
+plot(pc.xray)
+
+# Calculate RMSD
+rd <- rmsd(pdbs)
+
+# Structure-based clustering
+hc.rd <- hclust(dist(rd))
+grps.rd <- cutree(hc.rd, k=3)
+
+plot(pc.xray, 1:2, col="grey50", bg=grps.rd, pch=21, cex=1)
+```
+
+# 5. Optional further visualization
+
+```{r}
+# Visualize first principal component
+pc1 <- mktrj(pc.xray, pc=1, file="pc_1.pdb")
+```
+
+ggplotting
+```{r}
+#Plotting results with ggplot2
+library(ggplot2)
+library(ggrepel)
+
+df <- data.frame(PC1=pc.xray$z[,1], 
+                 PC2=pc.xray$z[,2], 
+                 col=as.factor(grps.rd),
+                 ids=ids)
+
+p <- ggplot(df) + 
+  aes(PC1, PC2, col=col, label=ids) +
+  geom_point(size=2) +
+  geom_text_repel(max.overlaps = 20) +
+  theme(legend.position = "none")
+p
+```
+
+# Q14. What do you note about this plot? Are the black and colored lines similar or different? Where do you think they differ most and why?
+
+The black and colored lineso are diferent. The differences are at selected local regions and are probably important catalytic sites for ligand or drug binding activities, or that those regions are at the outside of the protein and can be less conserved comparing to basic secondary structures that provides basic structural integrity of the protein.  
