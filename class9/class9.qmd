@@ -1,7 +1,7 @@
 ---
 title: "class9"
 author: "Yunchong Zhao"
-format: pdf
+format: gfm
 date: 10/16/2022
 ---
 
@@ -174,6 +174,7 @@ pc1 <- mktrj(pc.xray, pc=1, file="pc_1.pdb")
 ggplotting
 ```{r}
 #Plotting results with ggplot2
+#install.packages("ggrepel")
 library(ggplot2)
 library(ggrepel)
 
